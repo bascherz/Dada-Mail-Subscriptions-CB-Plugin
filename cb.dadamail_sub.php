@@ -1,8 +1,8 @@
 <?php
 /**
     Name:    CB Dada Mail Subscriptions
-    Version: 3.3, native for Joomla 3.x
-    Date:    August 2017
+    Version: 3.4, native for Joomla 3.x
+    Date:    September 2017
     Author:  Bruce Scherzinger
     Email:   joomlander@scherzinger.org
     URL:     http://joomla.org
@@ -22,9 +22,9 @@ defined('_JEXEC') or die('Direct Access to this location is not allowed.');
 
 // Language-specific strings
 // Error pop-ups
-define("CHANGES_NOT_SAVED","CHANGES NOT SAVED!");
-define("ADDRESS_ALREADY_IN_USE","One or more email addresses entered already used by another member!");
-define("DUPLICATE_ADDRESS_ENTERED","Email address cannot be entered more than once!");
+define("CHANGES_NOT_SAVED","CHANGES NOT SAVED! If you receive an email to the contrary, don't believe it.");
+define("ADDRESS_ALREADY_IN_USE","One or more email addresses entered already in use by another member!");
+define("DUPLICATE_ADDRESS_ENTERED","Email address cannot be used more than once per member!");
 
 // Default messages (if not specified in back end)
 define("DEFAULT_UNSUBSCRIBE_MSG","successfully unsubscribed [EMAIL] from [LIST] email list at [SITE].");
@@ -388,8 +388,9 @@ class getDadaMailTab extends cbTabHandler {
     {
         // Let's get the database
         static $database;
+        global $_PLUGINS;
         $database = JFactory::getDBO();
-   
+
         // Point to plugin parameters
         $params = $this->params;
 
@@ -425,7 +426,7 @@ class getDadaMailTab extends cbTabHandler {
                 if (substr_count(strtolower($user_emails),strtolower($address->value)) > 1)
                 {
                     $_PLUGINS->raiseError(0);
-                    $_PLUGINS->_setErrorMSG(DUPLICATE_ADDRESS_ENTERED.' '.CHANGES_NOT_SAVED);
+                    $_PLUGINS->_setErrorMSG(DUPLICATE_ADDRESS_ENTERED.' ('.$address->value.')<br>'.CHANGES_NOT_SAVED);
                     return true;
                 }
                 elseif ($address->field) $in_other_emails .= " OR (LOWER(".$address->field.") IN (".strtolower($user_emails)."))";
@@ -442,10 +443,10 @@ class getDadaMailTab extends cbTabHandler {
         if (count($duperecords))
         {
             $_PLUGINS->raiseError(0);
-            $_PLUGINS->_setErrorMSG(ADDRESS_ALREADY_IN_USE.' '.CHANGES_NOT_SAVED);
+            $_PLUGINS->_setErrorMSG(ADDRESS_ALREADY_IN_USE.' ('.$address->value.')<br>'.CHANGES_NOT_SAVED);
             return true;
         }
-        // No duplicates found
+        // no dupes found
         return false;
     }
 
