@@ -39,7 +39,9 @@ $_PLUGINS->registerFunction('onAfterUserApproval',            'afterUserApproval
 $_PLUGINS->registerFunction('onAfterUserConfirm',             'afterUserConfirms',           'getDadaMailTab');
 $_PLUGINS->registerFunction('onAfterUserRegistration',        'afterUserRegisters',          'getDadaMailTab');
 $_PLUGINS->registerFunction('onBeforeUserUpdate',             'beforeUserUpdate',            'getDadaMailTab');
+$_PLUGINS->registerFunction('onBeforeUpdateUser',             'beforeUserUpdate',            'getDadaMailTab');
 $_PLUGINS->registerFunction('onAfterUserUpdate',              'afterUserUpdate',             'getDadaMailTab');
+$_PLUGINS->registerFunction('onAfterUpdateUser',              'afterUserUpdate',             'getDadaMailTab');
 $_PLUGINS->registerFunction('onBeforeDeleteUser',             'beforeDeleteUser',            'getDadaMailTab');
 $_PLUGINS->registerFunction('onAfterLogin',                   'afterLogin',                  'getDadaMailTab');
 
