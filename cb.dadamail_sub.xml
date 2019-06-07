@@ -2,16 +2,16 @@
 <cbinstall version="4.5.3" type="plugin" group="user">
     <name>Dada Mail Subscriptions</name>
     <author>Bruce Scherzinger</author>
-    <creationDate>August 2017</creationDate>
-    <copyright>(C) 2007-2017 Bruce Scherzinger</copyright>
+    <creationDate>March 2018</creationDate>
+    <copyright>(C) 2007-2019 Bruce Scherzinger</copyright>
     <license>http://www.gnu.org/copyleft/gpl.html GNU/GPL</license>
     <authorEmail>joomlander@scherzinger.org</authorEmail>
-    <authorUrl>http://joomlacode.org/gf/project/dadamailmanager/frs/</authorUrl>
+    <authorUrl>https://github.com/bascherz/Dada-Mail-Subscriptions-CB-Plugin</authorUrl>
     <version>2.0</version>
     <description>
         <![CDATA[
-            <h3>Dada Mail Subscriptions Community Builder Plug-In v3.0</h3>
-            <address>&copy; 2010-2017 Bruce Scherzinger</address>
+            <h3>Dada Mail Subscriptions Community Builder Plug-In v3.7</h3>
+            <address>&copy; 2010-2019 Bruce Scherzinger</address>
             <p>Allows users to subscribe/unsubscribe to Dada Mail mailing lists from their CB profiles.</p>
             <p>Special tags you can insert into email notice message fragments are as follows:</p>
             <table border=1 cellspacing=0 cellpadding=1>
@@ -68,6 +68,7 @@
         <param name="dada_email2" type="text" size="40" default="cb_email2" label="Email #2" description="Enter the field name for an email address each user can use to subscribe to Dada Mail lists." />
         <param name="dada_email3" type="text" size="40" default="cb_email3" label="Email #3" description="Enter the field name for an email address each user can use to subscribe to Dada Mail lists." />
         <param name="dada_email4" type="text" size="40" default="cb_email4" label="Email #4" description="Enter the field name for an email address each user can use to subscribe to Dada Mail lists." />
+        <param name="dada_email_opts" type="text" size="40" default="" label="Email Options Field:" description="Enter the field name of the field where the full list of options is defined. This is necessary if you use a CB Code Field and your email list name options are not statically defined. If you are not using the CB Code Field plugin, leave this blank." />
     <!-- END MULTIPLE EMAIL ADDRESSES -->
 
         <param name="@spacer" type="spacer" default="" label="EMAIL NOTIFICATION" description="The remaining options allow you to customize how this plug-in sends notification emails." />

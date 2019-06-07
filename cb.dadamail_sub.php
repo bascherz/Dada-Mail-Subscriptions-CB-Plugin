@@ -1,8 +1,8 @@
 <?php
 /**
     Name:    CB Dada Mail Subscriptions
-    Version: 3.4, native for Joomla 3.x
-    Date:    September 2017
+    Version: 3.5, native for Joomla 3.x
+    Date:    March 2018
     Author:  Bruce Scherzinger
     Email:   joomlander@scherzinger.org
     URL:     http://joomla.org
@@ -35,15 +35,16 @@ define("DEFAULT_EMAIL_SUBJECT","[SITE] Email List Subscription Update");
 define("ALL_EMAIL_LISTS","all email lists");
 
 // These registrations handle administrator modifications to user settings.
-$_PLUGINS->registerFunction('onAfterUserApproval',            'afterUserApproval' ,          'getDadaMailTab');
-$_PLUGINS->registerFunction('onAfterUserConfirm',             'afterUserConfirms',           'getDadaMailTab');
-$_PLUGINS->registerFunction('onAfterUserRegistration',        'afterUserRegisters',          'getDadaMailTab');
-$_PLUGINS->registerFunction('onBeforeUserUpdate',             'beforeUserUpdate',            'getDadaMailTab');
-$_PLUGINS->registerFunction('onBeforeUpdateUser',             'beforeUserUpdate',            'getDadaMailTab');
-$_PLUGINS->registerFunction('onAfterUserUpdate',              'afterUserUpdate',             'getDadaMailTab');
-$_PLUGINS->registerFunction('onAfterUpdateUser',              'afterUserUpdate',             'getDadaMailTab');
-$_PLUGINS->registerFunction('onBeforeDeleteUser',             'beforeDeleteUser',            'getDadaMailTab');
-$_PLUGINS->registerFunction('onAfterLogin',                   'afterLogin',                  'getDadaMailTab');
+$_PLUGINS->registerFunction('onAfterUserApproval',          'afterUserApproval',        'getDadaMailTab');
+$_PLUGINS->registerFunction('onAfterUserConfirm',           'afterUserConfirms',        'getDadaMailTab');
+$_PLUGINS->registerFunction('onAfterUserRegistration',      'afterUserRegisters',       'getDadaMailTab');
+$_PLUGINS->registerFunction('onBeforeUserUpdate',           'beforeUserUpdate',         'getDadaMailTab');
+$_PLUGINS->registerFunction('onBeforeUpdateUser',           'beforeUserUpdate',         'getDadaMailTab');
+$_PLUGINS->registerFunction('onAfterUserUpdate',            'afterUserUpdate',          'getDadaMailTab');
+$_PLUGINS->registerFunction('onAfterUpdateUser',            'afterUserUpdate',          'getDadaMailTab');
+$_PLUGINS->registerFunction('onBeforeDeleteUser',           'beforeDeleteUser',         'getDadaMailTab');
+$_PLUGINS->registerFunction('onAfterLogin',                 'afterLogin',               'getDadaMailTab');
+$_PLUGINS->registerFunction('onBeforeUserProfileDisplay',   'beforeProfileDisplay',     'getDadaMailTab');
 
 class getDadaMailTab extends cbTabHandler {
 
@@ -76,13 +77,24 @@ class getDadaMailTab extends cbTabHandler {
         $database->setQuery("SELECT * FROM dada_subscribers WHERE email IN ($user_emails)");
         $subscriptions = $database->loadObjectList();
 
+        // Point to plugin parameters
+        $params = $this->params;
+
         // Assess which lists the user is subscribed to.
         if ($lists)
         {
             foreach ($lists as $list)
             {
+                // If an options field name is specified, use that as the source for options for all email lists.
+                // Otherwise, get the list email field name.
+                // In either case, find the associated option list.
+                $dada_lists_field = $params->get('dada_email_opts',"");
+                if ($dada_lists_field == "")
+                    $listfield = "cb_".$list->list;
+                else
+                    $listfield = $dada_lists_field;
+
                 // Set the CB field value for each list based on the actual subscription.
-                $listfield = "cb_".$list->list;
                 $database->setQuery("SELECT * FROM #__comprofiler_fields WHERE name='$listfield'");
                 $field = $database->loadObject();
                 if ($field->type == 'checkbox')
@@ -99,7 +111,8 @@ class getDadaMailTab extends cbTabHandler {
                     $database->setQuery("UPDATE #__comprofiler SET $listfield=$subscribed WHERE user_id=".$user->id);
                     $database->query();
                 }
-                elseif (($field->type == 'multicheckbox') || ($field->type == 'multiselect'))
+                elseif ($field->type == 'multicheckbox' || $field->type == 'codemulticheckbox' || $field->type == 'querymulticheckbox' ||
+                        $field->type == 'multiselect'   || $field->type == 'codemultiselect'   || $field->type == 'querymultiselect')
                 {
                     /*
                      * Whatever the user had chosen before will be overridden by what the
@@ -113,7 +126,7 @@ class getDadaMailTab extends cbTabHandler {
                         {
                             foreach ($addresses as $address)
                             {
-                                if ($subscription->email == $address->value)
+                                if (strtolower($subscription->email) == strtolower($address->value))
                                 {
                                     // Get the title of the option associated with this email address
                                     $database->setQuery("SELECT fieldtitle FROM #__comprofiler_field_values WHERE fieldid=".$field->fieldid." AND ordering=".$address->index);
@@ -142,12 +155,17 @@ class getDadaMailTab extends cbTabHandler {
         // update the profile fields at login so that by the time the user edits the profile they are set.
         $result = $this->refreshProfileSubscriptions($user);
     }
+    function beforeProfileDisplay(&$user, $nada, $cbUserIsModerator, $cbMyIsModerator)
+    {
+        // Refresh the profile just before displaying it.
+        $result = $this->refreshProfileSubscriptions($user);
+    }
 
     /*
-     * This function mainly just checks to see if the user changed his/her email address(es).
-     * If so, all existing subscription records matching the old email address are modified
-     * to have the new email address. This function does not subscribe any new addresses to
-     * any Dada lists (see afterUserUpdate).
+     * This function mainly just checks to see if the user changed his/her email address(es) or profile fields.
+     * If so, all existing subscription records matching the old email address are modified to have the new emai
+     * address and the profile field values are replaced even if now null. This function does not subscribe any
+     * new addresses to any Dada lists (see afterUserUpdate).
      */
     function beforeUserUpdate(&$user, &$cbUser)
     {
@@ -197,7 +215,7 @@ class getDadaMailTab extends cbTabHandler {
              * subscribership. Of course, if an email address that is subscribed to a Dada list is
              * modified, it will be modified for every list to which it was subscribed.
              */
-            if ($old_email != $new_email)
+            if (strtolower($old_email) != strtolower($new_email))
             {
                 // Loop through all the lists. Need to do this to check for existing duplicates.
                 foreach ($lists as $list)
@@ -271,8 +289,8 @@ class getDadaMailTab extends cbTabHandler {
     function afterUserRegisters ($user, $cbUser, $something=true)
     {
         global $ueConfig;
-        if (($ueConfig['reg_admin_approval'] == '0') && ($ueConfig['reg_confirmation'] == '0'))
-            $result = $this->afterNewUser($user, $cbUser);
+//        if (($ueConfig['reg_admin_approval'] == '0') && ($ueConfig['reg_confirmation'] == '0'))
+//            $result = $this->afterNewUser($user, $cbUser);
         return true;
     }
     
@@ -282,7 +300,7 @@ class getDadaMailTab extends cbTabHandler {
     function afterUserConfirms ($user, $cbUser, $something=true)
     {
         global $ueConfig;
-        if ( ($ueConfig['reg_admin_approval'] == '0') && $user->confirmed )
+        if ( ($ueConfig['reg_admin_approval'] == '0') && ($user->confirmed == 1) )
             $result = $this->afterNewUser($user, $cbUser);
         return true;
     }
@@ -293,7 +311,7 @@ class getDadaMailTab extends cbTabHandler {
     function afterUserApproval ($user, $cbUser, $something=true)
     {
         global $ueConfig;
-        if (($ueConfig['reg_admin_approval'] == '1') &&  $user->approved )
+        if (($ueConfig['reg_admin_approval'] == '1') &&  ($user->approved == 1) )
             $result = $this->afterNewUser($user, $cbUser);
         return true;
     }
@@ -371,8 +389,9 @@ class getDadaMailTab extends cbTabHandler {
             }
         }
 
-        // Notify user all addresses were unsubscribed from all lists
-        if ($message) $this->NotifyUser($user, $message);
+        // If user is approved, notify that all addresses were unsubscribed from all lists
+        if ($user->approved == 1)
+            if ($message) $this->NotifyUser($user, $message);
         
 	return true;
     }
@@ -425,7 +444,7 @@ class getDadaMailTab extends cbTabHandler {
             if ($address->value)
             {
                 // Error if any email address was entered more than once
-                if (substr_count(strtolower($user_emails),strtolower($address->value)) > 1)
+                if (substr_count(strtolower($user_emails),"'".strtolower($address->value)."'") > 1)
                 {
                     $_PLUGINS->raiseError(0);
                     $_PLUGINS->_setErrorMSG(DUPLICATE_ADDRESS_ENTERED.' ('.$address->value.')<br>'.CHANGES_NOT_SAVED);
@@ -548,6 +567,43 @@ class getDadaMailTab extends cbTabHandler {
     }
 
     /*
+     * Separates all profile field:pairs associated with each email address and returns them in an array
+     * indexed in the same order getEmails orders the email addresses.
+     */
+    function getProfileFields($user, &$addresslist, &$fieldsquery)
+    {
+        // Point to plugin parameters
+        $params = $this->params;
+
+        // Setup some default lists and strings
+        $fieldpairs = array();
+
+        // Get a list of CB fields to fetch email addresses from, if any
+        $dada_emails = intval($params->get('dada_emails',"0"));
+        if ($dada_emails)
+        {
+            for ($email = 1; $email <= $dada_emails; $email++)
+            {
+                $profilefields = $params->get('dada_email'.$email."fields","");
+                if (strlen(trim($profilefields)) > 0)
+                {
+                    // Separate list of field:pairs into a double-subscripted array
+                    $thispair = explode(",",preg_replace("/\s+/","",$profilefields));
+                    $fieldpairs[$email]->firstname = $thispair[0];
+                    $fieldpairs[$email]->lastname = $thispair[1];
+                }
+            }
+        }
+        else
+        {
+            // Only using the primary email address
+            $fieldpairs[1]->firstname = "firstname";
+            $fieldpairs[1]->lastname = "lastname";
+        }
+        return array_reverse($fieldpairs,true);
+    }
+
+    /*
      * The specified list must have a multicheckbox field associated with it.
      * Returns the names of the fields associated with the specified list in an array.
      * The array key is the field label, which makes it easy to lookup by exploding the
@@ -573,6 +629,15 @@ class getDadaMailTab extends cbTabHandler {
             }
         }
 
+        // If an options field name is specified, use that as the source for options for all email lists.
+        // Otherwise, get the list email field name.
+        // In either case, find the associated option list.
+        $dada_lists_field = $params->get('dada_email_opts',"");
+        if ($dada_lists_field == "")
+            $opt_field_name = "cb_".$list->list;
+        else
+            $opt_field_name = $dada_lists_field;
+
         /* Get a complete list of options for this list. Note that we don't really need
          * most of the stuff this query fetches multiple times, but doing it this way
          * requires only a single query, which is always nice.
@@ -580,7 +645,7 @@ class getDadaMailTab extends cbTabHandler {
         $database->setQuery("SELECT v.* FROM #__comprofiler_field_values as v".
                             " INNER JOIN #__comprofiler_fields as f".
                             " ON v.fieldid=f.fieldid".
-                            " WHERE f.name='cb_".$list->list."'".
+                            " WHERE f.name='".$opt_field_name."'".
                             " ORDER BY v.ordering");
         $options = $database->loadObjectList();
 
@@ -689,7 +754,8 @@ class getDadaMailTab extends cbTabHandler {
                 // Replace notice message placeholders
                 $message = str_replace(array('[LIST]','[EMAIL]'),array($list->value,$user->email),$message);
             }
-            elseif ($field->type == 'multicheckbox')
+            elseif ($field->type == 'multicheckbox' || $field->type == 'codemulticheckbox' || $field->type == 'querymulticheckbox' ||
+                    $field->type == 'multiselect'   || $field->type == 'codemultiselect'   || $field->type == 'querymultiselect')
             {
                 // Get a list of which address(es) this user has subscribed to this list
                 $addresses = $this->getOptionList($list, $user);
