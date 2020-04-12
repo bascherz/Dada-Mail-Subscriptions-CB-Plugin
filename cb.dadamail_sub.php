@@ -1,8 +1,8 @@
 <?php
 /**
     Name:    CB Dada Mail Subscriptions
-    Version: 3.5, native for Joomla 3.x
-    Date:    March 2018
+    Version: 3.8, native for Joomla 3.x
+    Date:    April 2020
     Author:  Bruce Scherzinger
     Email:   joomlander@scherzinger.org
     URL:     http://joomla.org
@@ -90,12 +90,13 @@ class getDadaMailTab extends cbTabHandler {
                 // In either case, find the associated option list.
                 $dada_lists_field = $params->get('dada_email_opts',"");
                 if ($dada_lists_field == "")
-                    $listfield = "cb_".$list->list;
+                    $optionsfield = "cb_".$list->list;
                 else
-                    $listfield = $dada_lists_field;
+                    $optionsfield = $dada_lists_field;
+                $listfield = "cb_".$list->list;
 
                 // Set the CB field value for each list based on the actual subscription.
-                $database->setQuery("SELECT * FROM #__comprofiler_fields WHERE name='$listfield'");
+                $database->setQuery("SELECT * FROM #__comprofiler_fields WHERE name='$optionsfield'");
                 $field = $database->loadObject();
                 if ($field->type == 'checkbox')
                 {
@@ -108,8 +109,10 @@ class getDadaMailTab extends cbTabHandler {
                             continue;
                         }
                     }
-                    $database->setQuery("UPDATE #__comprofiler SET $listfield=$subscribed WHERE user_id=".$user->id);
-                    $database->query();
+                    // Build and do the update query
+                    $querytext = "UPDATE #__comprofiler SET $listfield = '$selections' WHERE user_id=$user->id";
+                    $database->setQuery($querytext);
+                    $database->execute();
                 }
                 elseif ($field->type == 'multicheckbox' || $field->type == 'codemulticheckbox' || $field->type == 'querymulticheckbox' ||
                         $field->type == 'multiselect'   || $field->type == 'codemultiselect'   || $field->type == 'querymultiselect')
@@ -142,8 +145,13 @@ class getDadaMailTab extends cbTabHandler {
                             }
                         }
                     }
-                    $database->setQuery("UPDATE #__comprofiler SET $listfield='$selections' WHERE user_id=".$user->id);
-                    $database->query();
+                    // Set the field to update.
+                    $query = $database->getQuery(true);
+
+                    // Build and do the update query
+                    $querytext = "UPDATE #__comprofiler SET $listfield = '$selections' WHERE user_id=$user->id";
+                    $database->setQuery($querytext);
+                    $database->execute();
                 }
             }
         }
@@ -232,7 +240,7 @@ class getDadaMailTab extends cbTabHandler {
                         // No record for the old address, so update the email address in the existing record (if any)
                         $database->setQuery("UPDATE dada_subscribers SET email='$new_email' WHERE email='$old_email' AND list='".$list->list."'");
                     }
-                    $database->query();
+                    $database->execute();
                 }
                 $number++;
                 $message .= str_replace(array('[LIST]',    '[OLD]',   '[EMAIL]', '[LABEL]',      '[FIELD]'),
@@ -345,12 +353,15 @@ class getDadaMailTab extends cbTabHandler {
         {
             if ($auto == "*," || strstr($auto,$list->list.","))
             {
+                /* Insert the address into the dada_subscriptions table */
                 $result = $this->SubscribeAddress($user->email, $list->list);
-	        $message .= str_replace(array('[LIST]','[EMAIL]'),array($list->value,$user->email),$params->get('autosubscribe_email_msg',DEFAULT_AUTOSUBSCRIBE_MSG));
-	
+                $message .= str_replace(array('[LIST]','[EMAIL]'),array($list->value,$user->email),$params->get('autosubscribe_email_msg',DEFAULT_AUTOSUBSCRIBE_MSG));
                 $number++;
             }
         }
+        // Based on the auto-subscriptions, update the profile fields.
+        $result = $this->refreshProfileSubscriptions($user);
+
         // If applicable, notify the user of the subscription changes.
         if ($number) $this->NotifyUser($user, $message);
 
@@ -384,7 +395,7 @@ class getDadaMailTab extends cbTabHandler {
             {
                 // Unsubscribe this address from all lists
                 $database->setQuery("DELETE FROM dada_subscribers WHERE email='".$address->value."'");
-                $database->query();
+                $database->execute();
                 $message .= str_replace(array('[LIST]','[EMAIL]'),array(ALL_EMAIL_LISTS,$address->value),$params->get('unsubscribe_email_msg',DEFAULT_UNSUBSCRIBE_MSG));
             }
         }
@@ -487,7 +498,7 @@ class getDadaMailTab extends cbTabHandler {
         {
             // Subscribe the address to the list.
             $database->setQuery("INSERT INTO dada_subscribers SET email='$email',list='$list',list_type='list',list_status=1;");
-            $database->query();
+            $database->execute();
             $added = true;
         }
         return $added;
@@ -505,7 +516,7 @@ class getDadaMailTab extends cbTabHandler {
    
         // Unsubscribe the user from the list.
         $database->setQuery("DELETE FROM dada_subscribers WHERE email='$email' AND list='$list'");
-        $database->query();
+        $database->execute();
         return true;
     }
 
@@ -524,7 +535,7 @@ class getDadaMailTab extends cbTabHandler {
         $params = $this->params;
 
         // Setup some default lists and strings
-        $emails = array();
+        $emails[] = array();
         $addresslist = "'EMAILADDRESS'"; 
         $fieldsquery = "";
         
@@ -543,6 +554,7 @@ class getDadaMailTab extends cbTabHandler {
                 {
                     $database->setQuery("SELECT * FROM #__comprofiler_fields WHERE name='$field'");
                     $fieldinfo = $database->loadObject();
+                    $emails[$email] = new stdClass();
                     $emails[$email]->label = $fieldinfo->title;
                     $emails[$email]->field = $field;
                     $emails[$email]->value = $row->$field;
@@ -557,6 +569,7 @@ class getDadaMailTab extends cbTabHandler {
             // Only using the primary email address
             $database->setQuery("SELECT * FROM #__comprofiler_fields WHERE name='email'");
             $fieldinfo = $database->loadObject();
+            $emails[$email] = new stdClass();
             $emails[1]->label = $fieldinfo->title;
             $emails[1]->field = $fieldsquery = 'email';
             $emails[1]->value = $user->email;
@@ -576,7 +589,7 @@ class getDadaMailTab extends cbTabHandler {
         $params = $this->params;
 
         // Setup some default lists and strings
-        $fieldpairs = array();
+        $fieldpairs[] = array();
 
         // Get a list of CB fields to fetch email addresses from, if any
         $dada_emails = intval($params->get('dada_emails',"0"));
@@ -589,6 +602,7 @@ class getDadaMailTab extends cbTabHandler {
                 {
                     // Separate list of field:pairs into a double-subscripted array
                     $thispair = explode(",",preg_replace("/\s+/","",$profilefields));
+                    $fieldpairs[$email] = new stdClass();
                     $fieldpairs[$email]->firstname = $thispair[0];
                     $fieldpairs[$email]->lastname = $thispair[1];
                 }
@@ -597,6 +611,7 @@ class getDadaMailTab extends cbTabHandler {
         else
         {
             // Only using the primary email address
+            $fieldpairs[$email] = new stdClass();
             $fieldpairs[1]->firstname = "firstname";
             $fieldpairs[1]->lastname = "lastname";
         }
@@ -619,12 +634,13 @@ class getDadaMailTab extends cbTabHandler {
         // Get a list of CB fields to fetch email addresses from, if any
         $params = $this->params;
         $dada_emails = intval($params->get('dada_emails',"0"));
-        $emails = array();
+        $emails[] = array();
         for ($email = 1; $email <= $dada_emails; $email++)
         {
             $field = $params->get("dada_email".$email,"");
             if (strlen(trim($field)) > 0)
             {
+                $emails[$email] = new stdClass();
                 $emails[$email] = $field;
             }
         }
@@ -663,6 +679,7 @@ class getDadaMailTab extends cbTabHandler {
         foreach ($options as $option)
         {
             $field = $emails[$option->ordering];
+            $address[$option->fieldtitle] = new stdClass();
             $address[$option->fieldtitle]->field = $field;
             $address[$option->fieldtitle]->email = $userstuff->$field;
             $address[$option->fieldtitle]->ordering = $option->ordering;
@@ -677,7 +694,9 @@ class getDadaMailTab extends cbTabHandler {
         {
             $selections = explode('|*|',$selections);
             foreach ($selections as $selection)
+            {
                 $address[$selection]->selected = true;
+            }
         }
         return $address;
     }
