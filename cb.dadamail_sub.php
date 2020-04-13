@@ -1,7 +1,7 @@
 <?php
 /**
     Name:    CB Dada Mail Subscriptions
-    Version: 3.8, native for Joomla 3.x
+    Version: 3.9, native for Joomla 3.x
     Date:    April 2020
     Author:  Bruce Scherzinger
     Email:   joomlander@scherzinger.org

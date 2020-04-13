@@ -2,7 +2,7 @@
 <cbinstall version="4.5.3" type="plugin" group="user">
     <name>Dada Mail Subscriptions</name>
     <author>Bruce Scherzinger</author>
-    <creationDate>March 2018</creationDate>
+    <creationDate>March 2020</creationDate>
     <copyright>(C) 2007-2019 Bruce Scherzinger</copyright>
     <license>http://www.gnu.org/copyleft/gpl.html GNU/GPL</license>
     <authorEmail>joomlander@scherzinger.org</authorEmail>
@@ -10,7 +10,7 @@
     <version>2.0</version>
     <description>
         <![CDATA[
-            <h3>Dada Mail Subscriptions Community Builder Plug-In v3.8</h3>
+            <h3>Dada Mail Subscriptions Community Builder Plug-In v3.9</h3>
             <address>&copy; 2010-2019 Bruce Scherzinger</address>
             <p>Allows users to subscribe/unsubscribe to Dada Mail mailing lists from their CB profiles.</p>
             <p>Special tags you can insert into email notice message fragments are as follows:</p>
