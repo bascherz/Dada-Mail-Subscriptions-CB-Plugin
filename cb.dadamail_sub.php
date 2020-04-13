@@ -35,16 +35,14 @@ define("DEFAULT_EMAIL_SUBJECT","[SITE] Email List Subscription Update");
 define("ALL_EMAIL_LISTS","all email lists");
 
 // These registrations handle administrator modifications to user settings.
-$_PLUGINS->registerFunction('onAfterUserApproval',          'afterUserApproval',        'getDadaMailTab');
-$_PLUGINS->registerFunction('onAfterUserConfirm',           'afterUserConfirms',        'getDadaMailTab');
-$_PLUGINS->registerFunction('onAfterUserRegistration',      'afterUserRegisters',       'getDadaMailTab');
-$_PLUGINS->registerFunction('onBeforeUserUpdate',           'beforeUserUpdate',         'getDadaMailTab');
-$_PLUGINS->registerFunction('onBeforeUpdateUser',           'beforeUserUpdate',         'getDadaMailTab');
-$_PLUGINS->registerFunction('onAfterUserUpdate',            'afterUserUpdate',          'getDadaMailTab');
-$_PLUGINS->registerFunction('onAfterUpdateUser',            'afterUserUpdate',          'getDadaMailTab');
-$_PLUGINS->registerFunction('onBeforeDeleteUser',           'beforeDeleteUser',         'getDadaMailTab');
-$_PLUGINS->registerFunction('onAfterLogin',                 'afterLogin',               'getDadaMailTab');
-$_PLUGINS->registerFunction('onBeforeUserProfileDisplay',   'beforeProfileDisplay',     'getDadaMailTab');
+$_PLUGINS->registerFunction('onUserActive',                 'afterUserActivated',   'getDadaMailTab');
+$_PLUGINS->registerFunction('onBeforeUserUpdate',           'beforeUserUpdate',     'getDadaMailTab');
+$_PLUGINS->registerFunction('onBeforeUpdateUser',           'beforeUserUpdate',     'getDadaMailTab');
+$_PLUGINS->registerFunction('onAfterUserUpdate',            'afterUserUpdate',      'getDadaMailTab');
+$_PLUGINS->registerFunction('onAfterUpdateUser',            'afterUserUpdate',      'getDadaMailTab');
+$_PLUGINS->registerFunction('onBeforeDeleteUser',           'beforeDeleteUser',     'getDadaMailTab');
+$_PLUGINS->registerFunction('onAfterLogin',                 'afterLogin',           'getDadaMailTab');
+$_PLUGINS->registerFunction('onBeforeUserProfileDisplay',   'beforeProfileDisplay', 'getDadaMailTab');
 
 class getDadaMailTab extends cbTabHandler {
 
@@ -290,40 +288,16 @@ class getDadaMailTab extends cbTabHandler {
         if ($this->anyDuplicateAddresses($user, $cbUser)) return false;
         return true;
     }
-    
-    /*
-     * Handles user registration when no approval or confirmation is required.
-     */
-    function afterUserRegisters ($user, $cbUser, $something=true)
-    {
-        global $ueConfig;
-//        if (($ueConfig['reg_admin_approval'] == '0') && ($ueConfig['reg_confirmation'] == '0'))
-//            $result = $this->afterNewUser($user, $cbUser);
-        return true;
-    }
-    
-    /*
-     * Handles user registration when confirmation is required. Also considers approval being required.
-     */
-    function afterUserConfirms ($user, $cbUser, $something=true)
-    {
-        global $ueConfig;
-        if ( ($ueConfig['reg_admin_approval'] == '0') && ($user->confirmed == 1) )
-            $result = $this->afterNewUser($user, $cbUser);
-        return true;
-    }
-    
-    /*
-     * Handles user registration when admin approval is required. Also considers confirmation being required.
-     */
-    function afterUserApproval ($user, $cbUser, $something=true)
-    {
-        global $ueConfig;
-        if (($ueConfig['reg_admin_approval'] == '1') &&  ($user->approved == 1) )
-            $result = $this->afterNewUser($user, $cbUser);
-        return true;
-    }
 
+    /*
+     * Handles user activation, which is the event that completes the user object store after a new user is approved.
+     */
+    function afterUserActivated (&$user, $ui, $cause, $mailToAdmins, $mailToUser)
+    {
+        $result = $this->afterNewUser($user, $user);
+        return true;
+    }
+    
     /*
      * Subscribes the new user to all email lists.
      */
