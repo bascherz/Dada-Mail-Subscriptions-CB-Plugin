@@ -1,8 +1,8 @@
 <?php
 /**
     Name:    CB Dada Mail Subscriptions
-    Version: 3.9, native for Joomla 3.x
-    Date:    April 2020
+    Version: 3.10, native for Joomla 3.x
+    Date:    May 2020
     Author:  Bruce Scherzinger
     Email:   joomlander@scherzinger.org
     URL:     http://joomla.org
@@ -13,7 +13,7 @@
     to the GNU General Public License, and as distributed it includes or
     is derivative of works licensed under the GNU General Public License or
     other free or open source software licenses.
-    (C) 2007-2017 Bruce Scherzinger
+    (C) 2007-2020 Bruce Scherzinger
 
     Dada Mail is Free Software and is released under the Gnu Public License.
     http://dadamailproject.com/
@@ -65,7 +65,7 @@ class getDadaMailTab extends cbTabHandler {
         static $database;
         $database = JFactory::getDBO();
 
-        $database->setQuery("SELECT * FROM dada_settings WHERE setting='list_name'");
+        $database->setQuery("SELECT DISTINCT list,name FROM dada_settings JOIN #__comprofiler_fields WHERE setting='list_name' AND substring(name,4)=list");
         $lists = $database->loadObjectList();
 
         // Get all email addresses for this user's account
@@ -315,7 +315,7 @@ class getDadaMailTab extends cbTabHandler {
         $format = intval($params->get('email_format','0'));
 
         // Fetch list of lists from Dada settings table.
-        $database->setQuery("SELECT * FROM dada_settings WHERE setting='list_name'");
+        $database->setQuery("SELECT DISTINCT list,name FROM dada_settings JOIN #__comprofiler_fields WHERE setting='list_name' AND substring(name,4)=list");
         $lists = $database->loadObjectList();
         
         // Initialize email message
@@ -694,7 +694,7 @@ class getDadaMailTab extends cbTabHandler {
         $format = intval($params->get('email_format','0'));
         
         // Fetch list of lists from Dada settings table.
-        $database->setQuery("SELECT * FROM dada_settings WHERE setting='list_name'");
+        $database->setQuery("SELECT DISTINCT list,name FROM dada_settings JOIN #__comprofiler_fields WHERE setting='list_name' AND substring(name,4)=list");
         $lists = $database->loadObjectList();
         
         // Get all email addresses for this user's account
